@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-beta
+  labels:
+    kubeai-sentry.io/tenant: beta
+    kubeai-sentry.io/priority: low

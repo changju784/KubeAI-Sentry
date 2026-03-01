@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY app.py .
+
+ENV LOAD_PROFILE=steady
+ENV MEMORY_TARGET_MB=128
+ENV CPU_CORES=0.2
+ENV DURATION_SECONDS=3600
+
+CMD ["python", "app.py"]

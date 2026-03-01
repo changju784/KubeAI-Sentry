@@ -1,0 +1,21 @@
+apiVersion: kubeai-sentry/v1
+kind: WorkloadRecipe
+metadata:
+  name: inference-standard
+spec:
+  workload_type: inference
+  tenant: tenant-alpha
+  replicas: 1
+  priority_class: inference-high
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  env:
+    LOAD_PROFILE: steady
+    MEMORY_TARGET_MB: "256"
+    CPU_CORES: "0.4"
+    DURATION_SECONDS: "3600"

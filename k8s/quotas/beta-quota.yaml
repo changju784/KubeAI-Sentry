@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: beta-quota
+  namespace: tenant-beta
+spec:
+  hard:
+    requests.cpu: "4"
+    limits.cpu: "4"
+    requests.memory: 6Gi
+    limits.memory: 6Gi
+    pods: "10"

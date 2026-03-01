@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-alpha
+  labels:
+    kubeai-sentry.io/tenant: alpha
+    kubeai-sentry.io/priority: high

@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY app.py .
+
+ENV LOAD_PROFILE=burst
+ENV MEMORY_TARGET_MB=512
+ENV CPU_CORES=0.8
+ENV DURATION_SECONDS=3600
+
+CMD ["python", "app.py"]

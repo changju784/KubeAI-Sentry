@@ -1,0 +1,17 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: inference-high
+value: 1000
+preemptionPolicy: PreemptLowerPriority
+globalDefault: false
+description: "High priority class for inference workloads in tenant-alpha"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: training-low
+value: 100
+preemptionPolicy: Never
+globalDefault: false
+description: "Low priority class for training and data-cleansing workloads in tenant-beta"

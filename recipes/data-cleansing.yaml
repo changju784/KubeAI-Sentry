@@ -1,0 +1,21 @@
+apiVersion: kubeai-sentry/v1
+kind: WorkloadRecipe
+metadata:
+  name: data-cleansing
+spec:
+  workload_type: data-cleansing
+  tenant: tenant-beta
+  replicas: 1
+  priority_class: training-low
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+  env:
+    LOAD_PROFILE: steady
+    MEMORY_TARGET_MB: "128"
+    CPU_CORES: "0.2"
+    DURATION_SECONDS: "3600"

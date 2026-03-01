@@ -1,0 +1,21 @@
+apiVersion: kubeai-sentry/v1
+kind: WorkloadRecipe
+metadata:
+  name: training-noisy
+spec:
+  workload_type: training
+  tenant: tenant-beta
+  replicas: 1
+  priority_class: training-low
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
+  env:
+    LOAD_PROFILE: burst
+    MEMORY_TARGET_MB: "700"    # exceeds 512Mi limit → triggers OOMKill
+    CPU_CORES: "0.9"
+    DURATION_SECONDS: "300"
