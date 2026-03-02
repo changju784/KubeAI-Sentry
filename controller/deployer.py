@@ -38,7 +38,7 @@ def load_recipe(path: str) -> dict:
     if not recipe_path.exists():
         raise FileNotFoundError(f"Recipe file not found: {path}")
 
-    with open(recipe_path, "r") as f:
+    with open(recipe_path, "r", encoding="utf-8") as f:
         recipe = yaml.safe_load(f)
 
     for field in REQUIRED_RECIPE_FIELDS:
