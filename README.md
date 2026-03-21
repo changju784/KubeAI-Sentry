@@ -46,7 +46,8 @@ kubeai-sentry/
 │   ├── main.py
 │   ├── collector.py
 │   ├── display.py
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── sessions/               Auto-created; stores JSONL session dumps
 └── scripts/
     ├── setup.sh                Full cluster bootstrap
     └── teardown.sh             Cluster teardown
@@ -120,11 +121,19 @@ cd profiler
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
 python main.py --namespace all --interval 5
+
+# Dump session to an auto-named file in profiler/sessions/
+python main.py --namespace all --dump
+
+# Or specify a path explicitly
+python main.py --namespace all --dump ../reports/my-session.jsonl
 ```
 
 The dashboard has two panels:
 - **Top:** Pod table with CPU%, Mem% colored green/yellow/red by utilization threshold
 - **Bottom:** Scrolling OOMKill event log with timestamps
+
+Session dumps are JSONL files — one JSON object per poll interval, plus `session_start` and `session_end` metadata lines. Files are named `session_YYYYMMDD_HHMMSS.jsonl` and written to `profiler/sessions/` automatically.
 
 ---
 
@@ -142,8 +151,9 @@ python controller/main.py quota --namespace all
 Deploy the noisy recipe (700MB allocation in a 512Mi-limited container):
 ```bash
 python controller/main.py deploy recipes/training-noisy.yaml
-python profiler/main.py --namespace all
+python profiler/main.py --namespace all --dump
 # Profiler shows pod status OOMKilled in bold red; OOM log panel updates
+# Session saved to profiler/sessions/session_YYYYMMDD_HHMMSS.jsonl
 ```
 
 ### 3. Priority Scheduling
