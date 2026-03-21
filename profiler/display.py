@@ -5,6 +5,7 @@ Layout:
   Top panel:    Live Table – Pod | NS | CPU Used | CPU% | Mem Used | Mem% | Status
   Bottom panel: Scrolling OOMKill event log with timestamps
 """
+import json
 from collections import deque
 from datetime import datetime
 from typing import Optional
@@ -153,14 +154,48 @@ def build_oom_log_panel(oom_log: deque) -> Panel:
     )
 
 
+def _snapshot_to_dict(metrics: list[PodMetric], oom_events: list[OOMEvent]) -> dict:
+    """Serialize a poll snapshot to a plain dict for JSON output."""
+    return {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "pods": [
+            {
+                "pod": m.pod,
+                "namespace": m.namespace,
+                "cpu_used_cores": round(m.cpu_used_cores, 4),
+                "cpu_limit_cores": round(m.cpu_limit_cores, 4),
+                "cpu_percent": round(m.cpu_percent, 1),
+                "mem_used_bytes": int(m.mem_used_bytes),
+                "mem_limit_bytes": int(m.mem_limit_bytes),
+                "mem_percent": round(m.mem_percent, 1),
+                "status": m.status,
+                "oom_killed": m.oom_killed,
+            }
+            for m in metrics
+        ],
+        "oom_events": [
+            {
+                "timestamp": event.timestamp.isoformat() if hasattr(event.timestamp, "isoformat") else str(event.timestamp),
+                "pod": event.pod,
+                "namespace": event.namespace,
+                "container": event.container,
+                "exit_code": event.exit_code,
+            }
+            for event in oom_events
+        ],
+    }
+
+
 class Dashboard:
     """Rich Live dashboard that polls metrics and displays them in real time."""
 
-    def __init__(self, namespaces: list[str], interval: int = 5):
+    def __init__(self, namespaces: list[str], interval: int = 5, dump_path: Optional[str] = None):
         self.namespaces = namespaces
         self.interval = interval
+        self.dump_path = dump_path
         self.oom_log: deque[OOMEvent] = deque(maxlen=MAX_OOM_LOG_LINES)
         self._seen_oom_keys: set[str] = set()
+        self._dump_file = None
 
     def _make_layout(self, metrics: list[PodMetric], metrics_ready: bool) -> Layout:
         layout = Layout()
@@ -172,6 +207,13 @@ class Dashboard:
         layout["oom_log"].update(build_oom_log_panel(self.oom_log))
         return layout
 
+    def _write_snapshot(self, metrics: list[PodMetric], oom_events: list[OOMEvent]):
+        if self._dump_file is None:
+            return
+        line = json.dumps(_snapshot_to_dict(metrics, oom_events))
+        self._dump_file.write(line + "\n")
+        self._dump_file.flush()
+
     def _update_oom_log(self, oom_events: list[OOMEvent]):
         for event in oom_events:
             key = f"{event.namespace}/{event.pod}/{event.container}/{event.exit_code}"
@@ -181,7 +223,21 @@ class Dashboard:
 
     def run(self):
         """Start the live dashboard loop."""
+        import time
         from collector import collect_all_namespaces
+
+        if self.dump_path:
+            self._dump_file = open(self.dump_path, "w", encoding="utf-8")
+            # Write session metadata as first line
+            meta = {
+                "type": "session_start",
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "namespaces": self.namespaces,
+                "interval_seconds": self.interval,
+            }
+            self._dump_file.write(json.dumps(meta) + "\n")
+            self._dump_file.flush()
+            console.print(f"[dim]Dumping session to:[/dim] [cyan]{self.dump_path}[/cyan]")
 
         console.print(
             f"[bold cyan]KubeAI-Sentry Profiler[/bold cyan] – "
@@ -192,6 +248,7 @@ class Dashboard:
         # Initial collection
         metrics, oom_events = collect_all_namespaces(self.namespaces)
         self._update_oom_log(oom_events)
+        self._write_snapshot(metrics, oom_events)
         metrics_ready = any(m.cpu_used_cores > 0 or m.mem_used_bytes > 0 for m in metrics)
 
         with Live(
@@ -200,7 +257,6 @@ class Dashboard:
             refresh_per_second=1,
             screen=False,
         ) as live:
-            import time
             last_refresh = time.monotonic()
 
             try:
@@ -210,6 +266,7 @@ class Dashboard:
                     if time.monotonic() - last_refresh >= self.interval:
                         metrics, oom_events = collect_all_namespaces(self.namespaces)
                         self._update_oom_log(oom_events)
+                        self._write_snapshot(metrics, oom_events)
                         metrics_ready = any(
                             m.cpu_used_cores > 0 or m.mem_used_bytes > 0 for m in metrics
                         )
@@ -218,5 +275,11 @@ class Dashboard:
 
             except KeyboardInterrupt:
                 pass
+
+        if self._dump_file:
+            end = {"type": "session_end", "timestamp": datetime.utcnow().isoformat() + "Z"}
+            self._dump_file.write(json.dumps(end) + "\n")
+            self._dump_file.close()
+            console.print(f"[dim]Session saved to:[/dim] [cyan]{self.dump_path}[/cyan]")
 
         console.print("\n[dim]Profiler stopped.[/dim]")
