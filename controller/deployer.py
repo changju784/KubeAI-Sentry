@@ -10,7 +10,7 @@ from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
 # Image registry prefix used when loading images into minikube
-IMAGE_PREFIX = "kubeai-sentry"
+IMAGE_PREFIX = ""
 
 # Map workload_type → docker directory name / image name
 WORKLOAD_IMAGE_MAP = {
@@ -67,7 +67,7 @@ def build_deployment(recipe: dict, replicas_override: Optional[int] = None) -> c
     env_vars = spec.get("env", {})
 
     image_name = WORKLOAD_IMAGE_MAP.get(workload_type, f"mock-{workload_type}")
-    image = f"{IMAGE_PREFIX}/{image_name}:latest"
+    image = f"{IMAGE_PREFIX}/{image_name}:latest" if IMAGE_PREFIX else f"{image_name}:latest"
 
     # Build container env list
     env_list = [
