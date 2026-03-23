@@ -3,6 +3,8 @@
 A multi-tenant Kubernetes simulation that models AI workload lifecycles — Inference, Training, and Data Cleansing — using CPU and RAM as proxies for GPU and VRAM. Demonstrates three core cluster management properties: **resource isolation**, **OOMKill detection**, and **priority-based scheduling**.
 
 ---
+![kubeai_diagram](https://github.com/user-attachments/assets/b1fa0a9c-d736-4e64-b218-4780f05ccfab)
+
 
 ## How It Works
 
