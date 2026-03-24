@@ -9,6 +9,7 @@ Run:
 Get the minikube dashboard URL first:
   minikube dashboard --url
 """
+import json
 import subprocess
 import sys
 import time
@@ -41,6 +42,61 @@ RECIPES = {
 }
 NAMESPACES = ["tenant-alpha", "tenant-beta"]
 MAX_HISTORY_PER_POD = 60  # rolling data points per pod
+STATE_FILE = Path(__file__).parent / ".cluster_state.json"
+
+# ── State persistence ────────────────────────────────────────────────────────
+def _load_state() -> dict:
+    """Load persisted setup_done from disk (survives page refreshes)."""
+    try:
+        if STATE_FILE.exists():
+            return json.loads(STATE_FILE.read_text())
+    except Exception:
+        pass
+    return {}
+
+def _save_state():
+    """Write current setup_done to disk."""
+    try:
+        STATE_FILE.write_text(json.dumps(st.session_state.setup_done))
+    except Exception:
+        pass
+
+def _autodetect_state() -> dict:
+    """Probe the actual cluster and return an updated setup_done dict."""
+    state = {k: False for k in ["prereqs", "minikube", "built", "manifests", "images", "metrics"]}
+
+    ok_d, _ = _run_cmd(["docker", "info"])
+    ok_m, _ = _run_cmd(["minikube", "version"])
+    state["prereqs"] = ok_d and ok_m
+
+    ok, out = _run_cmd(["minikube", "status"])
+    state["minikube"] = ok and "Running" in out
+
+    if not state["minikube"]:
+        return state
+
+    ok, _ = _run_cmd([
+        "docker", "image", "inspect",
+        "mock-inference:latest", "mock-training:latest", "mock-data-cleansing:latest",
+    ])
+    state["built"] = ok
+
+    ok, _ = _run_cmd(["kubectl", "get", "namespace", "tenant-alpha", "tenant-beta"])
+    state["manifests"] = ok
+
+    ok, out = _run_cmd(["minikube", "image", "ls"])
+    state["images"] = ok and all(
+        img in out for img in ["mock-inference", "mock-training", "mock-data-cleansing"]
+    )
+
+    ok, out = _run_cmd(["minikube", "addons", "list"])
+    if ok:
+        for line in out.splitlines():
+            if "metrics-server" in line:
+                state["metrics"] = "enabled" in line.lower()
+                break
+
+    return state
 
 # ── Session state ────────────────────────────────────────────────────────────
 def _init():
@@ -56,6 +112,7 @@ def _init():
             "manifests": False,
             "images":    False,
             "metrics":   False,
+            **_load_state(),    # overlay persisted flags — survives page refresh
         },
     }
     for k, v in defaults.items():
@@ -337,6 +394,26 @@ with tab_setup:
     st.subheader("Cluster Setup")
     st.caption("Run these steps in order before deploying workloads.")
 
+    # ── State controls ────────────────────────────────────────────────────────
+    _col_detect, _col_reset = st.columns([2, 1])
+    with _col_detect:
+        if st.button("🔍 Auto-detect Cluster State", use_container_width=True,
+                     help="Probe minikube/kubectl/docker to update all step badges automatically."):
+            with st.spinner("Detecting cluster state…"):
+                detected = _autodetect_state()
+            st.session_state.setup_done.update(detected)
+            _save_state()
+            done_count = sum(detected.values())
+            st.success(f"Detected {done_count}/6 steps complete.")
+            st.rerun()
+    with _col_reset:
+        if st.button("↺ Reset", use_container_width=True,
+                     help="Clear all step badges and the cached state file."):
+            for k in st.session_state.setup_done:
+                st.session_state.setup_done[k] = False
+            _save_state()
+            st.rerun()
+
     # ── Step 0: Check Prerequisites ───────────────────────────────────────────
     st.markdown("---")
     c1, c2 = st.columns([3, 1])
@@ -355,6 +432,7 @@ with tab_setup:
         all_ok = ok_docker and ok_mk
         if all_ok:
             st.session_state.setup_done["prereqs"] = True
+            _save_state()
             status0.markdown("✅ Done")
             _log("✅ Prerequisites verified")
             st.success("Docker and minikube are available.")
@@ -386,6 +464,7 @@ with tab_setup:
                 ok, out = _run_cmd(["minikube", "start", "--driver=docker"])
             if ok:
                 st.session_state.setup_done["minikube"] = True
+                _save_state()
                 status_mk.markdown("✅ Done")
                 _log("✅ minikube started")
                 st.success("minikube is running.")
@@ -399,6 +478,7 @@ with tab_setup:
                 ok, out = _run_cmd(["minikube", "status"])
             if ok:
                 st.session_state.setup_done["minikube"] = True
+                _save_state()
                 status_mk.markdown("✅ Done")
                 st.success("minikube is already running.")
             else:
@@ -436,6 +516,7 @@ with tab_setup:
         combined = "\n\n".join(outputs)
         if all_ok:
             st.session_state.setup_done["built"] = True
+            _save_state()
             status_build.markdown("✅ Done")
             _log("✅ Docker images built")
             st.success("All images built successfully.")
@@ -469,6 +550,7 @@ with tab_setup:
             combined = "\n\n".join(outputs)
             if all_ok:
                 st.session_state.setup_done["manifests"] = True
+                _save_state()
                 status1.markdown("✅ Done")
                 _log("✅ K8s manifests applied")
                 st.success("Manifests applied.")
@@ -500,6 +582,7 @@ with tab_setup:
         combined = "\n\n".join(outputs)
         if all_ok:
             st.session_state.setup_done["images"] = True
+            _save_state()
             status2.markdown("✅ Done")
             _log("✅ Images loaded into minikube")
             st.success("All images loaded.")
@@ -520,6 +603,7 @@ with tab_setup:
             ok, out = _run_cmd(["minikube", "addons", "enable", "metrics-server"])
         if ok:
             st.session_state.setup_done["metrics"] = True
+            _save_state()
             status3.markdown("✅ Done")
             _log("✅ metrics-server enabled")
             st.success("Metrics server enabled. Allow ~60 s for data to appear.")
