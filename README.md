@@ -170,6 +170,48 @@ python controller/main.py list --namespace all
 
 ---
 
+## Streamlit GUI
+
+A browser-based dashboard is available as an alternative to the CLI and terminal profiler.
+
+### Setup
+
+```bash
+cd dashboard
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+The app opens at `http://localhost:8501` by default.
+
+### Tabs
+
+| Tab | Description |
+|---|---|
+| **Overview** | Project introduction and quick-start guide |
+| **Cluster Setup** | Step-by-step cluster bootstrap (minikube, images, manifests, metrics-server) |
+| **Live Metrics** | Per-pod CPU/Memory table with color-coded utilization, auto-refresh |
+| **Time-Series Charts** | Rolling CPU% and Memory% line charts per pod (last 60 data points) |
+| **Quota Usage** | Progress bars showing ResourceQuota utilization per namespace |
+| **Workloads** | Table of active Deployments with status, priority class, and replica count |
+| **OOM Events** | Log of OOMKill events detected across all namespaces |
+
+### Sidebar Controls
+
+- **Deploy Workload** — one-click deploy for any of the four recipes
+- **Stress / Overload** — deploy `training-noisy` with N replicas to fill beta quota
+- **Purge Namespace** — delete all Deployments from `tenant-alpha` or `tenant-beta`
+- **Auto-refresh** — toggle continuous polling with a configurable interval (2–30 s)
+- **minikube dashboard URL** — paste the URL from `minikube dashboard --url` to get a link button
+
+### Notes
+
+- Complete Cluster Setup steps 1–4 before using Deploy or Overload controls.
+- The metrics-server takes ~60 s after Step 5 to begin reporting data; Live Metrics shows a warning until ready.
+- The dashboard imports directly from `controller/` and `profiler/` — no separate installs needed beyond `dashboard/requirements.txt`.
+
+---
+
 ## Teardown
 
 ```bash
