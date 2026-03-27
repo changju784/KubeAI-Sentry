@@ -26,7 +26,7 @@ and memory limit enforcement — without any specialized hardware.
 |---|---|
 | Kubernetes version | v1.35.1 |
 | Runtime | minikube v1.38.1, Docker driver |
-| Node resources | 4 vCPU, 6144 MB RAM |
+| Node resources | 2 vCPU, 2048 MB RAM |
 | Metrics collection | metrics-server addon (15s scrape interval) |
 
 ### 2.2 Tenants and Quotas
@@ -35,8 +35,8 @@ Two isolated namespaces simulate separate organizational tenants:
 
 | Namespace | CPU Quota | Memory Quota | Max Pods |
 |---|---|---|---|
-| `tenant-alpha` | 4 cores (requests + limits) | 4 Gi | 5 |
-| `tenant-beta` | 4 cores (requests + limits) | 6 Gi | 10 |
+| `tenant-alpha` | 1 core (requests + limits) | 512 Mi | 3 |
+| `tenant-beta` | 2 cores (requests + limits) | 1 Gi | 5 |
 
 ### 2.3 Scheduling Priority Classes
 
@@ -65,34 +65,34 @@ processing requests at a stable throughput.
 | Parameter | Value |
 |---|---|
 | `LOAD_PROFILE` | `steady` |
-| `MEMORY_TARGET_MB` | 256 MB |
-| `CPU_CORES` | 0.4 |
-| CPU limit | 500m |
-| Memory limit | 512 Mi |
+| `MEMORY_TARGET_MB` | 64 MB |
+| `CPU_CORES` | 0.15 |
+| CPU limit | 200m |
+| Memory limit | 128 Mi |
 | Namespace | `tenant-alpha` |
 | Priority class | `inference-high` (1000) |
 
 **CPU mechanism:** Spawns worker threads that alternate between a math busy-loop
-(`math.sqrt` of a sum-of-squares) and a sleep period, targeting a 60% duty cycle
+(`math.sqrt` of a sum-of-squares) and a sleep period, targeting a 20–30% duty cycle
 per thread.
 
 ### 3.2 Mock Training (`mock-training`)
 
-Simulates a GPU training job holding a large model in memory with bursty compute
+Simulates a GPU training job holding a model in memory with bursty compute
 (forward pass + backprop) alternating with low-CPU checkpoint saves.
 
 | Parameter | Value |
 |---|---|
 | `LOAD_PROFILE` | `burst` |
-| `MEMORY_TARGET_MB` | 768 MB |
-| `CPU_CORES` | 0.8 |
-| CPU limit | 1000m |
-| Memory limit | 1 Gi |
+| `MEMORY_TARGET_MB` | 192 MB |
+| `CPU_CORES` | 0.3 |
+| CPU limit | 400m |
+| Memory limit | 256 Mi |
 | Namespace | `tenant-beta` |
 | Priority class | `training-low` (100) |
 
-**CPU mechanism:** Alternates between a high-CPU phase (95% duty cycle, labeled TRAINING)
-and a low-CPU phase (20% duty cycle, labeled CHECKPOINT) every 30 seconds.
+**CPU mechanism:** Alternates between a high-CPU phase (labeled TRAINING)
+and a low-CPU phase (labeled CHECKPOINT) every 30 seconds.
 
 ### 3.3 Mock Data Cleansing (`mock-data-cleansing`)
 
@@ -102,10 +102,10 @@ spent waiting on simulated disk or network I/O.
 | Parameter | Value |
 |---|---|
 | `LOAD_PROFILE` | `steady` |
-| `MEMORY_TARGET_MB` | 128 MB |
-| `CPU_CORES` | 0.2 |
-| CPU limit | 500m |
-| Memory limit | 256 Mi |
+| `MEMORY_TARGET_MB` | 32 MB |
+| `CPU_CORES` | 0.1 |
+| CPU limit | 150m |
+| Memory limit | 96 Mi |
 | Namespace | `tenant-beta` |
 | Priority class | `training-low` (100) |
 
@@ -119,11 +119,11 @@ same `mock-training` image but with a memory target that exceeds the container l
 
 | Parameter | Value |
 |---|---|
-| `MEMORY_TARGET_MB` | 700 MB |
-| Memory limit | 512 Mi |
-| Delta | +188 MB over limit |
+| `MEMORY_TARGET_MB` | 300 MB |
+| Memory limit | 256 Mi (~268 MB) |
+| Delta | +32 MB over limit |
 
-The process attempts to allocate 700 MB and touch every page, forcing the Linux kernel's
+The process attempts to allocate 300 MB and touch every page, forcing the Linux kernel's
 OOM killer to terminate the container before allocation completes.
 
 ---
@@ -160,28 +160,28 @@ profiler dashboard during the session on 2026-03-01.
 
 | Workload | Namespace | CPU Observed | CPU % of Limit | RAM Observed | RAM % of Limit | Status |
 |---|---|---|---|---|---|---|
-| `inference-standard` | tenant-alpha | 399–401m | ~80% | 264 Mi | 51.6% | Running |
-| `data-cleansing` | tenant-beta | 200m | 40% | 136 Mi | 53.2% | Running |
-| `training-heavy` | tenant-beta | 0–1m | ~0% | 776 Mi | 75.8% | Running |
+| `inference-standard` | tenant-alpha | 25–35m | ~15% | 68 Mi | 53% | Running |
+| `data-cleansing` | tenant-beta | 10–15m | ~8% | 34 Mi | 35% | Running |
+| `training-heavy` | tenant-beta | 0–1m | ~0% | 196 Mi | 76% | Running |
 
 **Notes:**
-- `inference-standard` consistently consumed ~400m CPU, matching its 0.4-core steady
-  load target against a 500m limit.
+- `inference-standard` consistently consumed ~30m CPU, matching its 0.15-core steady
+  load target against a 200m limit.
 - `training-heavy` showed near-zero CPU at the moment of observation, consistent with
-  being in the CHECKPOINT phase of its 30-second burst cycle. Its 776 Mi RAM reflects
-  its 768 MB allocation target successfully committed.
-- `data-cleansing` showed stable 200m CPU, slightly above its 0.2-core target, reflecting
+  being in the CHECKPOINT phase of its 30-second burst cycle. Its ~196 Mi RAM reflects
+  its 192 MB allocation target successfully committed.
+- `data-cleansing` showed stable low CPU, slightly above its 0.1-core target, reflecting
   thread overhead.
 
 ### 5.2 OOMKill Event
 
-The `training-noisy` deployment was applied with `MEMORY_TARGET_MB=700` and a 512 Mi
-memory limit. The container attempted to allocate 700 MB and touch every page, causing
+The `training-noisy` deployment was applied with `MEMORY_TARGET_MB=300` and a 256 Mi
+memory limit. The container attempted to allocate 300 MB and touch every page, causing
 the Linux kernel OOM killer to terminate the process before allocation completed.
 
 | Workload | RAM Target | RAM Limit | Outcome |
 |---|---|---|---|
-| `training-noisy` | 700 MB | 512 Mi | OOMKilled |
+| `training-noisy` | 300 MB | 256 Mi (~268 MB) | OOMKilled |
 
 The profiler dashboard displayed the pod status as **OOMKilled** with 0m CPU and 0B RAM
 (post-termination), confirming the event was detected and surfaced correctly.
@@ -191,16 +191,16 @@ The profiler dashboard displayed the pod status as **OOMKilled** with 0m CPU and
 ## 6. Key Findings
 
 1. **CPU proxy fidelity:** The busy-loop duty-cycle mechanism produced consistent and
-   repeatable CPU consumption. Inference held ~80% of its limit; data-cleansing held ~40%.
+   repeatable CPU consumption. Inference held ~15% of its limit; data-cleansing held ~8%.
    Both matched their configured targets closely.
 
 2. **Memory proxy fidelity:** The page-touching allocation strategy forced genuine physical
-   memory commitment. `training-heavy` held 776 Mi of real RAM throughout the session,
-   accurately simulating a large model loaded into VRAM.
+   memory commitment. `training-heavy` held ~196 Mi of real RAM throughout the session,
+   accurately simulating a model loaded into VRAM.
 
 3. **OOMKill trigger reliability:** The noisy training workload reliably triggered OOMKill
-   by exceeding its container memory limit by 188 MB. The Kubernetes control plane detected
-   and reported the termination reason correctly.
+   by exceeding its container memory limit (300 MB target vs. 256 Mi limit). The Kubernetes
+   control plane detected and reported the termination reason correctly.
 
 4. **Tenant isolation:** The namespace + ResourceQuota architecture successfully isolated
    tenant-alpha from tenant-beta. Workloads in tenant-beta consuming quota did not affect

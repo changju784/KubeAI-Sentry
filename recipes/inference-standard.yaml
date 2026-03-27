@@ -9,13 +9,13 @@ spec:
   priority_class: inference-high
   resources:
     requests:
-      cpu: "250m"
-      memory: "256Mi"
+      cpu: "100m"
+      memory: "80Mi"
     limits:
-      cpu: "500m"
-      memory: "512Mi"
+      cpu: "200m"
+      memory: "128Mi"
   env:
     LOAD_PROFILE: steady
-    MEMORY_TARGET_MB: "256"
-    CPU_CORES: "0.4"
+    MEMORY_TARGET_MB: "64"
+    CPU_CORES: "0.15"
     DURATION_SECONDS: "3600"

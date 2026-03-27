@@ -1,6 +1,6 @@
 """
 Mock Inference Workload
-Simulates steady AI inference: 40-60% CPU, moderate RAM.
+Simulates steady AI inference: 20-30% CPU, light RAM.
 Reads env vars: LOAD_PROFILE, MEMORY_TARGET_MB, CPU_CORES, DURATION_SECONDS
 """
 import os
@@ -9,8 +9,8 @@ import threading
 import math
 
 LOAD_PROFILE = os.environ.get("LOAD_PROFILE", "steady")
-MEMORY_TARGET_MB = int(os.environ.get("MEMORY_TARGET_MB", "256"))
-CPU_CORES = float(os.environ.get("CPU_CORES", "0.5"))
+MEMORY_TARGET_MB = int(os.environ.get("MEMORY_TARGET_MB", "64"))
+CPU_CORES = float(os.environ.get("CPU_CORES", "0.2"))
 DURATION_SECONDS = int(os.environ.get("DURATION_SECONDS", "3600"))
 
 # Keep memory allocation alive at module level
@@ -40,7 +40,7 @@ def cpu_worker(stop_event: threading.Event, target_fraction: float):
         deadline = time.monotonic() + work_ms / 1000.0
         while time.monotonic() < deadline:
             # Arithmetic busy-loop to burn CPU
-            _ = math.sqrt(sum(i * i for i in range(500)))
+            _ = math.sqrt(sum(i * i for i in range(100)))
         if sleep_ms > 0:
             time.sleep(sleep_ms / 1000.0)
 

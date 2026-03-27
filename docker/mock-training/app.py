@@ -1,6 +1,6 @@
 """
 Mock Training Workload
-Simulates heavy AI training: burst 80-95% CPU, high RAM, periodic spikes.
+Simulates AI training: burst 50-70% CPU, moderate RAM, periodic spikes.
 Reads env vars: LOAD_PROFILE, MEMORY_TARGET_MB, CPU_CORES, DURATION_SECONDS
 """
 import os
@@ -9,8 +9,8 @@ import threading
 import math
 
 LOAD_PROFILE = os.environ.get("LOAD_PROFILE", "burst")
-MEMORY_TARGET_MB = int(os.environ.get("MEMORY_TARGET_MB", "512"))
-CPU_CORES = float(os.environ.get("CPU_CORES", "0.8"))
+MEMORY_TARGET_MB = int(os.environ.get("MEMORY_TARGET_MB", "128"))
+CPU_CORES = float(os.environ.get("CPU_CORES", "0.3"))
 DURATION_SECONDS = int(os.environ.get("DURATION_SECONDS", "3600"))
 
 _memory_block = None
@@ -42,7 +42,7 @@ def cpu_worker(stop_event: threading.Event, target_fraction: float):
         deadline = time.monotonic() + work_ms / 1000.0
         while time.monotonic() < deadline:
             # Simulate gradient computation with heavy math
-            _ = math.sqrt(sum(i * i * math.sin(i) for i in range(1000)))
+            _ = math.sqrt(sum(i * i * math.sin(i) for i in range(200)))
         if sleep_ms > 0:
             time.sleep(sleep_ms / 1000.0)
 

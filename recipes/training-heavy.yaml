@@ -9,13 +9,13 @@ spec:
   priority_class: training-low
   resources:
     requests:
-      cpu: "500m"
-      memory: "512Mi"
+      cpu: "200m"
+      memory: "160Mi"
     limits:
-      cpu: "1000m"
-      memory: "1Gi"
+      cpu: "400m"
+      memory: "256Mi"
   env:
     LOAD_PROFILE: burst
-    MEMORY_TARGET_MB: "768"
-    CPU_CORES: "0.8"
+    MEMORY_TARGET_MB: "192"
+    CPU_CORES: "0.3"
     DURATION_SECONDS: "3600"

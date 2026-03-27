@@ -12,9 +12,9 @@ Three mock workloads run as Kubernetes Deployments across two isolated tenants:
 
 | Workload | Tenant | Behavior |
 |---|---|---|
-| `mock-inference` | `tenant-alpha` | Steady 40–60% CPU, moderate RAM |
-| `mock-training` | `tenant-beta` | Burst 80–95% CPU, high RAM, periodic spikes |
-| `mock-data-cleansing` | `tenant-beta` | Light CPU, moderate RAM, simulated I/O wait |
+| `mock-inference` | `tenant-alpha` | Steady 20–30% CPU, light RAM (64 MB) |
+| `mock-training` | `tenant-beta` | Burst 50–70% CPU, moderate RAM (192 MB), periodic spikes |
+| `mock-data-cleansing` | `tenant-beta` | Light CPU, minimal RAM (32 MB), simulated I/O wait |
 
 Each workload reads env vars (`LOAD_PROFILE`, `MEMORY_TARGET_MB`, `CPU_CORES`, `DURATION_SECONDS`) so behavior is controlled entirely by the recipe YAML — no image rebuilds needed.
 
@@ -33,7 +33,7 @@ kubeai-sentry/
 ├── recipes/                    WorkloadRecipe YAMLs (custom schema)
 │   ├── inference-standard.yaml   High-priority inference in tenant-alpha
 │   ├── training-heavy.yaml       Burst training in tenant-beta
-│   ├── training-noisy.yaml       OOMKill trigger (700MB in 512Mi limit)
+│   ├── training-noisy.yaml       OOMKill trigger (300MB in 256Mi limit)
 │   └── data-cleansing.yaml       Light pipeline workload
 ├── k8s/                        Kubernetes manifests
 │   ├── namespaces/               tenant-alpha and tenant-beta
@@ -73,7 +73,7 @@ bash scripts/setup.sh
 ```
 
 This script:
-1. Starts minikube (`--cpus 4 --memory 6144 --driver=docker`)
+1. Starts minikube (`--cpus 2 --memory 2048 --driver=docker`)
 2. Enables the metrics-server addon
 3. Builds and loads the three workload images into minikube
 4. Applies all K8s manifests (namespaces, quotas, priority classes)
@@ -150,7 +150,7 @@ python controller/main.py quota --namespace all
 ```
 
 ### 2. OOMKill Detection
-Deploy the noisy recipe (700MB allocation in a 512Mi-limited container):
+Deploy the noisy recipe (300MB allocation in a 256Mi-limited container):
 ```bash
 python controller/main.py deploy recipes/training-noisy.yaml
 python profiler/main.py --namespace all --dump

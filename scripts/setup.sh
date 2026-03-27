@@ -13,8 +13,8 @@ echo "Project root: $PROJECT_ROOT"
 # 1. Start minikube
 # ──────────────────────────────────────────────────
 echo ""
-echo "[1/5] Starting minikube (cpus=4, memory=6144MB, driver=docker)..."
-minikube start --cpus 4 --memory 6144 --driver=docker
+echo "[1/5] Starting minikube (cpus=2, memory=2048MB, driver=docker)..."
+minikube start --cpus 2 --memory 2048 --driver=docker
 
 echo ""
 echo "[2/5] Enabling metrics-server addon..."

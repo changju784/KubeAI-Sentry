@@ -7,14 +7,14 @@ spec:
   limits:
     - type: Container
       default:
-        cpu: "500m"
-        memory: "512Mi"
+        cpu: "200m"
+        memory: "128Mi"
       defaultRequest:
-        cpu: "250m"
-        memory: "256Mi"
-      max:
-        cpu: "2"
-        memory: "2Gi"
-      min:
-        cpu: "50m"
+        cpu: "100m"
         memory: "64Mi"
+      max:
+        cpu: "500m"
+        memory: "256Mi"
+      min:
+        cpu: "10m"
+        memory: "16Mi"

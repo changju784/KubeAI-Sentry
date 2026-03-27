@@ -10,8 +10,8 @@ import math
 import random
 
 LOAD_PROFILE = os.environ.get("LOAD_PROFILE", "steady")
-MEMORY_TARGET_MB = int(os.environ.get("MEMORY_TARGET_MB", "128"))
-CPU_CORES = float(os.environ.get("CPU_CORES", "0.2"))
+MEMORY_TARGET_MB = int(os.environ.get("MEMORY_TARGET_MB", "32"))
+CPU_CORES = float(os.environ.get("CPU_CORES", "0.1"))
 DURATION_SECONDS = int(os.environ.get("DURATION_SECONDS", "3600"))
 
 _memory_block = None
@@ -45,7 +45,7 @@ def cpu_worker(stop_event: threading.Event, target_fraction: float):
         # Data processing burst (regex matching, type conversion simulation)
         deadline = time.monotonic() + work_ms / 1000.0
         while time.monotonic() < deadline:
-            _ = math.log(sum(abs(math.sin(i)) for i in range(100)) + 1)
+            _ = math.log(sum(abs(math.sin(i)) for i in range(50)) + 1)
 
         # Simulate I/O wait (disk read, network call to data source)
         if io_wait_ms > 0:

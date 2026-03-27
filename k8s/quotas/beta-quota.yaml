@@ -5,8 +5,8 @@ metadata:
   namespace: tenant-beta
 spec:
   hard:
-    requests.cpu: "4"
-    limits.cpu: "4"
-    requests.memory: 6Gi
-    limits.memory: 6Gi
-    pods: "10"
+    requests.cpu: "2"
+    limits.cpu: "2"
+    requests.memory: 1Gi
+    limits.memory: 1Gi
+    pods: "5"

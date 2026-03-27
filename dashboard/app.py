@@ -461,7 +461,7 @@ with tab_setup:
     with col_mk1:
         if st.button("Start Minikube", key="btn_mk_start", use_container_width=True):
             with st.spinner("Starting minikube (this may take a minute)…"):
-                ok, out = _run_cmd(["minikube", "start", "--driver=docker"])
+                ok, out = _run_cmd(["minikube", "start", "--cpus", "2", "--memory", "2048", "--driver=docker"])
             if ok:
                 st.session_state.setup_done["minikube"] = True
                 _save_state()

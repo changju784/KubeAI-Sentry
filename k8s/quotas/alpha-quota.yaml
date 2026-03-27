@@ -5,8 +5,8 @@ metadata:
   namespace: tenant-alpha
 spec:
   hard:
-    requests.cpu: "4"
-    limits.cpu: "4"
-    requests.memory: 4Gi
-    limits.memory: 4Gi
-    pods: "5"
+    requests.cpu: "1"
+    limits.cpu: "1"
+    requests.memory: 512Mi
+    limits.memory: 512Mi
+    pods: "3"

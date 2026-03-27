@@ -1,1 +1,1 @@
-{"prereqs": true, "minikube": true, "built": true, "manifests": true, "images": true, "metrics": false}
+{"prereqs": true, "minikube": true, "built": true, "manifests": true, "images": true, "metrics": true}
